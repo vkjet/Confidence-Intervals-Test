@@ -1,0 +1,122 @@
+---
+title: "Confidence Intervals Test"
+output: html_notebook
+author: Valeriy Kondruk
+date: April 15, 2020
+---
+
+## Test process:
+
+1. We want to simulate a population of 20,000 people with average height anywhere between 170 and 180 cm and standard deviation anywhere between 10 and 15 cm.
+2. Then create a random sample of 1000 people and calculate confidence interval. 
+3. Then create 10 smaller samples of 100 persons each and calculate 95% CIs for each of them. 
+4. By comparing 10 different CIs we want to find the largest overlap for at least 9 of them. 
+5. Then compare this overlaping interval with a true population mean. Compare this interval with what we had for a large sample.  
+
+
+### Step 1. Simulate a population of Stupidville
+
+```{r}
+set.seed(212121)
+stupidville.residents = round(rnorm(n = 20000, mean = sample(170:180, size = 1), sd = sample(10:15, 1)), 0)
+# we don't want to know true parameters until the end
+```
+
+### Step 2. Random sample of 1,000 residents
+
+```{r}
+# create a random subset of a main set
+large.sample = sample(stupidville.residents, size = 1000, replace = F)
+```
+  
+
+```{r eval=FALSE, include=FALSE}
+# ls.mean = mean(large.sample)
+# ls.sd = sd(large.sample)
+# ls.se = ls.sd/sqrt(1000)
+# ls.me = qnorm(0.975)*(ls.se) # margin of error. For a 95% CI, alpha = .05. Suppose, we don't know sigma (population true mean)
+# 
+# ls.ci = c(ls.mean - ls.me, ls.mean + ls.me)
+# ls.ci
+```
+Create a function for future use
+
+```{r}
+confinterval = function(object, level) {
+  object.mean = mean(object)
+  object.me = qnorm(level + (1-level)/2)*(sd(object)/sqrt(length(object)))
+  c(object.mean - object.me, object.mean + object.me)
+}
+```
+
+Calculate confidence interval
+
+```{r}
+confinterval(large.sample, 0.95)
+```
+
+
+### Step 3. 10 random samples of 100 residents
+
+```{r}
+small.samples = replicate(10, sample(stupidville.residents, size = 100, replace = F)) 
+```
+
+Let's calculate 95% CIs for each of the smaller samples.
+
+```{r}
+ss.cis = apply(small.samples, 2, confinterval, level = 0.95)
+
+ss.means = apply(ss.cis, 2, mean)
+ss.cis = rbind(ss.cis, ss.means) # add means to the data frame
+
+ss.cis = as.data.frame(t(ss.cis))
+colnames(ss.cis) = c("Lower", "Upper", "Mean")
+attach(ss.cis)
+ss.cis = ss.cis[order(ss.cis[,3]),] # sort by the mean
+ss.cis
+```
+
+### Step 4. Find the overlaps
+
+Let's find the overlaping interval (one that is included in 95% of samples).
+
+To visualize this, we built a plot with three lines representing Lower and Upper bound along with the Mean for all of the sample intervals. We then show the lines for middle 95% percentile for both Lower and Upper bounds. A distance between yellow and violet lines is the interval that 95% of samples include. We can safely predict that the true population parameter lies within this interval.  
+
+```{r}
+matplot(ss.cis, type = "l", xlab = "Sample number", ylab = "Height in cm") +
+  #abline(a = quantile(ss.cis[3,], 0.025), b = 0, col = "blue", lwd = 0.3) +
+  #abline(a = quantile(ss.cis[3,], 0.975), b = 0, col = "blue", lwd = 0.3) +
+  abline(a = quantile(ss.cis[,1], 0.025), b = 0, col = "orange", lwd = 0.3) +
+  abline(a = quantile(ss.cis[,1], 0.975), b = 0, col = "orange", lwd = 0.3) +
+  abline(a = quantile(ss.cis[,2], 0.025), b = 0, col = "violet", lwd = 0.3) +
+  abline(a = quantile(ss.cis[,2], 0.975), b = 0, col = "violet", lwd = 0.3)
+```
+
+Here's a numeric representation of the overlapping interval:
+
+```{r}
+overlap.interval = c(quantile(ss.cis[,1], 0.975), quantile(ss.cis[,2], 0.025))
+overlap.interval
+```
+
+
+### Step 5. Compare samples overlap with true population parameter
+
+It's time to look at the true population parameter and see if our overlapping interval captures the true population parameter.
+
+```{r}
+true.mean = mean(stupidville.residents)
+true.mean
+```
+
+
+```{r}
+overlap.interval = sort(overlap.interval)
+if (true.mean >= overlap.interval[1] & true.mean <= overlap.interval[2]) show("True parameter captured") else show("True parameter NOT captured")
+```
+
+In our case we have both of the intervals (from small and large samples) captured the true mean of the population. However, this is not guaranteed for other random samples. We can try and build a large-scale simulation to test different sampling options and the proportions of sampling capturing true population parameter.
+
+
+
