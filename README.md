@@ -1,11 +1,13 @@
 # Confidence Intervals Test
 
+*Author: Valeriy Kondruk*
+
 ## What does a 95% confidence interval mean?
 
 Suppose we took many samples and built a confidence interval from each of them using the equation: **point estimate +- 2xSE**
 Then about 95% of those intervals would contain the true population mean.
 
-We want to test this assumption by simulating a population of a small town called Stupidville where the height of every person is known.
+We want to test this assumption by simulating a population of a small town called Stupidville where the height of every person is known. Suppose we conducted a survey to find out the average height of people of Stupidville. Based on the 'survey' data we can build a confidence interval and check if it captures the true population mean. 
 
 ## Test process:
 
